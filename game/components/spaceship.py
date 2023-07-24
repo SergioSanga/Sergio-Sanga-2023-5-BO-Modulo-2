@@ -8,7 +8,7 @@ class Spaceship(Sprite):
     SPACESHIP_WIDTH = 40
     SPACESHIP_HEIGHT = 60
     SHIP_SPEED = 10
-    X_POS = (SCREEN_WIDTH//2) - SPACESHIP_WIDTH//2
+    X_POS = (SCREEN_WIDTH // 2) - SPACESHIP_WIDTH // 2
     Y_POS = 500
 
     def __init__(self):
@@ -16,40 +16,51 @@ class Spaceship(Sprite):
         self.rect = self.image.get_rect()
         self.rect.x = self.X_POS
         self.rect.y = self.Y_POS
-        self.type = 'player'
+        self.type = "player"
+        self.shooting_time = random.randint(30, 50)
         self.power_up_type = DEFAULT_TYPE
         self.has_power_up = False
         self.power_time_up = 0
+        self.is_alive = True
 
     def update(self, user_input, game):
+        current_time = pygame.time.get_ticks()
+
         if user_input[pygame.K_LEFT]:
             self.rect.x -= self.SHIP_SPEED
-        if self.rect.left < 0:
-            self.rect.right = SCREEN_WIDTH
+            if self.rect.left < 0:
+                self.rect.right = SCREEN_WIDTH
         elif user_input[pygame.K_RIGHT]:
             self.rect.x += self.SHIP_SPEED
             if self.rect.right >= SCREEN_WIDTH:
-                self.rect.left = 0          
+                self.rect.left = 0
         elif user_input[pygame.K_UP]:
-            if self.rect.top > SCREEN_HEIGHT//2:
-                self.rect.y -= self.SPEED
+            if self.rect.top > (SCREEN_HEIGHT // 2):
+                self.rect.y -= self.SHIP_SPEED
         elif user_input[pygame.K_DOWN]:
-            if self.rect.y < SCREEN_HEIGHT - self.SPACESHIP_HEIGHT:
+            if self.rect.bottom < SCREEN_HEIGHT:
                 self.rect.y += self.SHIP_SPEED
+
         elif user_input[pygame.K_SPACE]:
-            self.shoot(game)
-       
+            self.shoot_player(game)
+
+        # Check if the power-up time has expired
+        if self.has_power_up and current_time >= self.power_time_up:
+            self.has_power_up = False
+            self.power_up_type = DEFAULT_TYPE
+            self.set_image()
+        
+        if not self.is_alive:
+            game.death_count += 1
+            game.playing = False
+
     def draw(self, screen):
-        screen.blit(self.image, (self.rect.x, self.rect.y)) 
-      
-    def shoot(self, game):
+        screen.blit(self.image, (self.rect.x, self.rect.y))
+
+    def shoot_player(self, game):
         bullet = Bullet(self)
         game.bullet_manager.add_bullet(bullet)
-        
-    def set_image(self, size = (SPACESHIP_HEIGHT, SPACESHIP_WIDTH), image = SPACESHIP):
+
+    def set_image(self, size=(SPACESHIP_WIDTH, SPACESHIP_HEIGHT), image=SPACESHIP):
         self.image = image
         self.image = pygame.transform.scale(self.image, size)
-      
-
-
-   

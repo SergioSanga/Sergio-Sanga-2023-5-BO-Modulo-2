@@ -10,6 +10,7 @@ class Bullet(Sprite):
     BULLET_ENEMY = pygame.transform.scale(BULLET_ENEMY, (BULLET_WIDTH, BULLET_HEIGHT))
     BULLETS = {'player': BULLET_PLAYER, 'enemy': BULLET_ENEMY}
     SPEED = 20
+    
 
     def __init__(self, spaceship):
         self.image = self.BULLETS[spaceship.type]

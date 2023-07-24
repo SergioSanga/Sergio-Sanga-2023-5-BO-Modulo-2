@@ -1,8 +1,12 @@
-from game.components.menu import Menu
 import pygame
+import random
 from game.components.bullets.bullet_manager import BulletManager
 from game.components.enemies.enemy_manager import EnemyManager
+from game.components.menu import Menu
 from game.components.power_ups.power_up_manager import PowerUpManager
+from game.components.power_shield.power_up_manager2 import PowerUpManager2
+from game.components.trampa.power_up_manager3 import PowerUpManager3
+from game.utils.constants import MUSIC_FILE
 from game.utils.constants import BG, FONT_STYLE, ICON, SCREEN_HEIGHT, SCREEN_WIDTH, TITLE, FPS, DEFAULT_TYPE
 from game.components.spaceship import Spaceship
 
@@ -21,11 +25,16 @@ class Game:
         self.enemy_manager = EnemyManager()
         self.bullet_manager = BulletManager()
         self.running = False
-        self.menu = Menu('Press any key to start...', self.screen)
+        self.menu = Menu('Welcome,Press any key to start...', self.screen)
         self.death_count = 0
         self.score = 0
         self.highest_score = 0
         self.power_up_manager = PowerUpManager()
+        self.power_up_manager2 = PowerUpManager2()
+        self.power_up_manager3 = PowerUpManager3()
+        pygame.mixer.music.load(MUSIC_FILE)
+        pygame.mixer.music.set_volume(0.5)  # Puedes ajustar el volumen de 0.0 a 1.0
+        pygame.mixer.music.play(-1)
 
     def execute(self):
         self.running = True
@@ -33,18 +42,19 @@ class Game:
             if not self.playing:
                 self.show_menu()
         pygame.display.quit()
-        pygame.quit()
+        pygame.quit()      
 
     def run(self):
         # Game loop: events - update - draw
         self.score = 0
         self.enemy_manager.reset()
-        self.playing = True
+        self.bullet_manager.reset_bullet()
+        self.playing = True                               
         while self.playing:
             self.events()
             self.update()
-            self.draw()
-            
+            self.draw()        
+        
     def events(self):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -56,7 +66,10 @@ class Game:
         self.enemy_manager.update(self)
         self.bullet_manager.update(self)
         self.power_up_manager.update(self)
-        
+        self.power_up_manager2.update(self)
+        self.power_up_manager3.update(self)
+        #self.power_up_manager4.update(self)
+
     def draw(self):
         self.clock.tick(FPS)
         self.screen.fill((255, 255, 255))
@@ -66,59 +79,102 @@ class Game:
         self.bullet_manager.draw(self.screen)
         self.draw_score()
         self.power_up_manager.draw(self.screen)
+        self.power_up_manager2.draw(self.screen)
+        self.power_up_manager3.draw(self.screen)
         self.draw_power_up_time()
+        self.draw_power_up_time2()
+        self.draw_power_up_time3()
         pygame.display.update()
+        #pygame.display.flip()
 
     def draw_background(self):
         image = pygame.transform.scale(BG, (SCREEN_WIDTH, SCREEN_HEIGHT))
-        image_height = image.get_height()
+        image_height = image.get_height()        
         self.screen.blit(image, (self.x_pos_bg, self.y_pos_bg))
         self.screen.blit(image, (self.x_pos_bg, self.y_pos_bg - image_height))
         if self.y_pos_bg >= SCREEN_HEIGHT:
+            self.screen.blit(image, (self.x_pos_bg, self.y_pos_bg - image_height))
             self.y_pos_bg = 0
         self.y_pos_bg += self.game_speed
-    
-    def show_menu(self):
-        self.menu.reset_screen_color(self.screen)   
+
+    def show_menu(self):        
+        self.menu.reset_screen_color(self.screen)
         half_screen_height = SCREEN_HEIGHT // 2
         half_screen_width = SCREEN_WIDTH // 2
-
-        if self.death_count == 0:           
-         self.menu.draw(self.screen)
-        else:
-          self.update_highest_score()
-          self.menu.update_message(self.screen, 'Game over. Press any key to restart')
-          self.menu.update_message(self.screen, f'Your score {self.score}', 30)
-          self.menu.update_message(self.screen, f'highest score {self.highest_score}', 60)
-          self.menu.update_message(self.screen, f'total deaths {self.death_count}', 90)
-          self.menu.draw(self.screen)
+        if self.death_count == 0:
+            self.menu.draw(self.screen)
+        else:            
+            self.update_highest_score()
+            self.menu.update_message(self.screen, 'Game over. Press any key to start')
+            self.menu.update_message(self.screen, f'Your score: {self.score}', 40)
+            self.menu.update_message(self.screen, f'Highest score: {self.highest_score}', 80)
+            self.menu.update_message(self.screen, f'Total deaths: {self.death_count}', 125)
         
         icon = self.image = pygame.transform.scale(ICON, (80, 120))
         self.screen.blit(icon, (half_screen_width - 50, half_screen_height - 150))
-
         self.menu.update(self)
-        
+    
     def update_score(self):
-        self.score += 1
+        self.score += 1        
     
     def update_highest_score(self):
-        if self.score > self.highest_score:
+        if (self.score > self.highest_score):
             self.highest_score = self.score
-        
+
     def draw_score(self):
         font = pygame.font.Font(FONT_STYLE, 30)
-        text = font.render(f'Score: {self. score}', True, (255, 255, 255))
+        text = font.render(f'Score: {self.score}', True, (255,255,255))
         text_rect = text.get_rect()
         text_rect.center = (1000, 50)
         self.screen.blit(text, text_rect)
 
     def draw_power_up_time(self):
         if self.player.has_power_up:
-            time_to_show = round((self.player.power_time_up - pygame.time.get_ticks())/1000, 2)
+            time_to_show = round((self.player.power_time_up - pygame.time.get_ticks()) /1000, 2)
             if time_to_show >= 0:
-                message = f'{self.player.power_up_type.capitalize()} is enable for {time_to_show} second' 
-                self.menu.update_message(self.screen, 0, {255,255,255})
+                message = f'{self.player.power_up_type.capitalize()} is enable for {time_to_show} second'
+                self.menu.update_message(self.screen, message, 0, (255,255,255))
             else:
                 self.player.has_power_up = False
                 self.player.power_up_type = DEFAULT_TYPE
                 self.player.set_image()
+
+    def draw_power_up_time2(self):
+        if self.player.has_power_up:
+            time_to_show = round((self.player.power_time_up - pygame.time.get_ticks()) /1000, 2)
+            if time_to_show >= 0:
+                message = f'{self.player.power_up_type.capitalize()} is enable for {time_to_show} second'
+                self.menu.update_message(self.screen, message, 0, (255,255,255))
+            else:
+                self.player.has_power_up = False
+                self.player.power_up_type = DEFAULT_TYPE
+                self.player.set_image()
+
+    
+    def draw_power_up_time3(self):
+        if self.player.has_power_up:
+            time_to_show = round((self.player.power_time_up - pygame.time.get_ticks()) / 1000, 2)
+            if time_to_show >= 0:
+                if self.player.power_up_type == 'tr':
+                    message = f'{self.player.power_up_type.capitalize()} is enabled for {time_to_show} seconds'
+                    self.menu.update_message(self.screen, message, 0, (255, 255, 255))
+
+                    # Check for collision with the player
+                    for power_up in self.power_up_manager3.power_ups:
+                        if self.player.rect.colliderect(power_up.rect):
+                            self.player.has_power_up = False
+                            self.player.power_up_type = DEFAULT_TYPE
+                            self.player.set_image()
+                            self.death_count += 1  # Increment the death count
+                            self.power_up_manager3.power_ups.remove(power_up)  # Remove the trampa from the list
+
+                else:
+                    message = f'{self.player.power_up_type.capitalize()} is enabled for {time_to_show} seconds'
+                    self.menu.update_message(self.screen, message, 0, (255, 255, 255))
+            else:
+                self.player.has_power_up = False
+                self.player.power_up_type = DEFAULT_TYPE
+                self.player.set_image()
+    
+    
+    
